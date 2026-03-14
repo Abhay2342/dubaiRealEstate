@@ -1,0 +1,25 @@
+# Build output — already handled inside Docker build stage
+target/
+
+# IDE / OS noise
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local secrets — never bake into image
+.env
+*.env
+
+# Version control
+.git/
+.gitignore
+
+# Docs / local tooling
+README.md
+DOCUMENTATION.md
+*.postman_collection.json
+
+# CSV data files (imported at runtime via upload API, not baked in)
+csv_data/
