@@ -1,0 +1,599 @@
+{
+  "info": {
+    "_postman_id": "dubai-real-estate-v1",
+    "name": "Dubai Real Estate API",
+    "description": "Full collection for the Dubai Real Estate Spring Boot backend.\n\nBase URL is stored in the `baseUrl` collection variable (default: http://localhost:8080).\n\nFolders:\n- Sales – upload, list/filter, averages\n- Rents – upload, list/filter, averages",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "salesArea",
+      "value": "DUBAI MARINA",
+      "type": "string",
+      "description": "Area name used in /api/sales/averages/{area}. Change to a real area from your DB."
+    },
+    {
+      "key": "rentsArea",
+      "value": "DUBAI MARINA",
+      "type": "string",
+      "description": "Area name used in /api/rents/averages/{area}. Change to a real area from your DB."
+    }
+  ],
+  "item": [
+    {
+      "name": "Sales",
+      "description": "Endpoints for sales transactions (sale_transactions table).",
+      "item": [
+        {
+          "name": "Upload Sales CSV",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sales/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sales", "upload"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Select the transactions-2026-02-19.csv file (or any DLD sales CSV)"
+                }
+              ]
+            },
+            "description": "Uploads and parses a DLD sales CSV file, persisting all records to the `sale_transactions` table.\n\n**Body:** `multipart/form-data` with key `file`.\n\n**Success response (200):**\n```json\n{\n  \"recordsImported\": 12345,\n  \"message\": \"Sales transactions imported successfully.\"\n}\n```\n\n**Error responses:**\n- 400 – could not read file\n- 413 – file exceeds 100 MB limit\n- 422 – CSV parsing failed"
+          },
+          "response": [
+            {
+              "name": "200 OK – Import Successful",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/api/sales/upload",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "sales", "upload"]
+                },
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": []
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"recordsImported\": 12345,\n  \"message\": \"Sales transactions imported successfully.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Sales – No Filters (Page 0)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sales?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sales"],
+              "query": [
+                {"key": "page", "value": "0", "description": "0-based page number (default: 0)"},
+                {"key": "size", "value": "20", "description": "Page size (default: 20)"},
+                {"key": "usage", "value": "", "disabled": true, "description": "Filter by usage, e.g. Residential, Commercial"},
+                {"key": "minPrice", "value": "", "disabled": true, "description": "Minimum trans_value (inclusive)"},
+                {"key": "maxPrice", "value": "", "disabled": true, "description": "Maximum trans_value (inclusive)"},
+                {"key": "areaSearch", "value": "", "disabled": true, "description": "Free-text search on area_name (case-insensitive)"},
+                {"key": "projectSearch", "value": "", "disabled": true, "description": "Free-text search on project_name (case-insensitive)"}
+              ]
+            },
+            "description": "Returns a paginated list of all sales transactions with no filters applied.\n\nAll filter parameters are optional; disabled params above can be enabled and filled as needed.\n\n**Response** is a Spring `Page` envelope:\n```json\n{\n  \"content\": [ { ... } ],\n  \"totalElements\": 50000,\n  \"totalPages\": 2500,\n  \"number\": 0,\n  \"size\": 20\n}\n```\n\nEach item in `content`:\n```json\n{\n  \"id\": 1,\n  \"transId\": \"12345\",\n  \"transDate\": \"2024-01-15\",\n  \"transValue\": 2500000.00,\n  \"areaName\": \"DUBAI MARINA\",\n  \"projectName\": \"MARINA HEIGHTS\",\n  \"usage\": \"Residential\",\n  \"registrationType\": \"Sales\",\n  \"propertyType\": \"Unit\",\n  \"rooms\": \"2 B/R\",\n  \"actualArea\": 120.50,\n  \"meterSalePrice\": 20746.89\n}\n```\n(`null` fields are omitted from the JSON response)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Sales – Filter by Usage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sales?usage=Residential&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sales"],
+              "query": [
+                {"key": "usage", "value": "Residential", "description": "Filter by usage type"},
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            },
+            "description": "Returns only Residential sales transactions."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Sales – Filter by Price Range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sales?minPrice=1000000&maxPrice=5000000&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sales"],
+              "query": [
+                {"key": "minPrice", "value": "1000000", "description": "Min trans_value"},
+                {"key": "maxPrice", "value": "5000000", "description": "Max trans_value"},
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            },
+            "description": "Returns sales transactions where trans_value is between 1,000,000 and 5,000,000."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Sales – Filter by Area (Text Search)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sales?areaSearch=marina&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sales"],
+              "query": [
+                {"key": "areaSearch", "value": "marina", "description": "Case-insensitive partial match on area_name"},
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            },
+            "description": "Returns sales transactions where area_name contains \"marina\" (case-insensitive)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Sales – Filter by Project (Text Search)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sales?projectSearch=emaar&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sales"],
+              "query": [
+                {"key": "projectSearch", "value": "emaar", "description": "Case-insensitive partial match on project_name"},
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            },
+            "description": "Returns sales transactions where project_name contains \"emaar\" (case-insensitive)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Sales – Combined Filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sales?usage=Residential&minPrice=500000&maxPrice=3000000&areaSearch=marina&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sales"],
+              "query": [
+                {"key": "usage", "value": "Residential"},
+                {"key": "minPrice", "value": "500000"},
+                {"key": "maxPrice", "value": "3000000"},
+                {"key": "areaSearch", "value": "marina"},
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "10"}
+              ]
+            },
+            "description": "All filters combined: Residential sales in areas matching \"marina\", priced between 500k and 3M."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Sales – Page 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sales?page=1&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sales"],
+              "query": [
+                {"key": "page", "value": "1", "description": "Second page (0-indexed)"},
+                {"key": "size", "value": "20"}
+              ]
+            },
+            "description": "Demonstrates pagination – retrieves the second page."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Sales Average Prices (All Areas)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sales/averages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sales", "averages"]
+            },
+            "description": "Returns average `trans_value` grouped by area, across all sales transactions.\n\n**Response:**\n```json\n[\n  {\n    \"areaName\": \"DUBAI MARINA\",\n    \"averagePrice\": 2150000.00,\n    \"transactionCount\": 4821\n  },\n  ...\n]\n```"
+          },
+          "response": [
+            {
+              "name": "200 OK – List of Area Averages",
+              "originalRequest": {
+                "method": "GET",
+                "url": {"raw": "{{baseUrl}}/api/sales/averages", "host": ["{{baseUrl}}"], "path": ["api", "sales", "averages"]}
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "[\n  {\n    \"areaName\": \"DUBAI MARINA\",\n    \"averagePrice\": 2150000.00,\n    \"transactionCount\": 4821\n  },\n  {\n    \"areaName\": \"DOWNTOWN DUBAI\",\n    \"averagePrice\": 3400000.00,\n    \"transactionCount\": 2903\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get Sales Average Price – Specific Area",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sales/averages/{{salesArea}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sales", "averages", "{{salesArea}}"]
+            },
+            "description": "Returns average `trans_value` and transaction count for a single area.\n\nThe area name is taken from the `salesArea` collection variable (default: `DUBAI MARINA`). Update the variable or type the area directly in the URL.\n\n**Response:**\n```json\n{\n  \"areaName\": \"DUBAI MARINA\",\n  \"averagePrice\": 2150000.00,\n  \"transactionCount\": 4821\n}\n```\n\n**404** is returned if the area is not found."
+          },
+          "response": [
+            {
+              "name": "200 OK – Single Area Average",
+              "originalRequest": {
+                "method": "GET",
+                "url": {"raw": "{{baseUrl}}/api/sales/averages/DUBAI MARINA", "host": ["{{baseUrl}}"], "path": ["api", "sales", "averages", "DUBAI MARINA"]}
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"areaName\": \"DUBAI MARINA\",\n  \"averagePrice\": 2150000.00,\n  \"transactionCount\": 4821\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Rents",
+      "description": "Endpoints for rent transactions (rent_transactions table).",
+      "item": [
+        {
+          "name": "Upload Rents CSV",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rents/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rents", "upload"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Select the rents-2026-02-19.csv file (or any DLD rents CSV)"
+                }
+              ]
+            },
+            "description": "Uploads and parses a DLD rents CSV file, persisting all records to the `rent_transactions` table.\n\n**Body:** `multipart/form-data` with key `file`.\n\n**Success response (200):**\n```json\n{\n  \"recordsImported\": 9876,\n  \"message\": \"Rent transactions imported successfully.\"\n}\n```\n\n**Error responses:**\n- 400 – could not read file\n- 413 – file exceeds 100 MB limit\n- 422 – CSV parsing failed"
+          },
+          "response": [
+            {
+              "name": "200 OK – Import Successful",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/api/rents/upload",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "rents", "upload"]
+                },
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {"key": "file", "type": "file", "src": []}
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"recordsImported\": 9876,\n  \"message\": \"Rent transactions imported successfully.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Rents – No Filters (Page 0)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rents?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rents"],
+              "query": [
+                {"key": "page", "value": "0", "description": "0-based page number (default: 0)"},
+                {"key": "size", "value": "20", "description": "Page size (default: 20)"},
+                {"key": "usage", "value": "", "disabled": true, "description": "Filter by usage, e.g. Residential, Commercial"},
+                {"key": "minPrice", "value": "", "disabled": true, "description": "Minimum annual_amount (inclusive)"},
+                {"key": "maxPrice", "value": "", "disabled": true, "description": "Maximum annual_amount (inclusive)"},
+                {"key": "areaSearch", "value": "", "disabled": true, "description": "Free-text search on area_name (case-insensitive)"},
+                {"key": "projectSearch", "value": "", "disabled": true, "description": "Free-text search on project_name (case-insensitive)"}
+              ]
+            },
+            "description": "Returns a paginated list of all rent transactions with no filters applied.\n\n**Response** is a Spring `Page` envelope:\n```json\n{\n  \"content\": [ { ... } ],\n  \"totalElements\": 30000,\n  \"totalPages\": 1500,\n  \"number\": 0,\n  \"size\": 20\n}\n```\n\nEach item in `content`:\n```json\n{\n  \"id\": 1,\n  \"contractId\": \"99001\",\n  \"contractDate\": \"2024-03-01\",\n  \"annualAmount\": 85000.00,\n  \"startDate\": \"2024-03-01\",\n  \"endDate\": \"2025-02-28\",\n  \"areaName\": \"DUBAI MARINA\",\n  \"projectName\": \"MARINA RESIDENCES\",\n  \"usage\": \"Residential\",\n  \"propertyType\": \"Unit\",\n  \"rooms\": \"1 B/R\",\n  \"actualArea\": 75.00\n}\n```"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Rents – Filter by Usage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rents?usage=Residential&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rents"],
+              "query": [
+                {"key": "usage", "value": "Residential", "description": "Filter by usage type"},
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            },
+            "description": "Returns only Residential rent transactions."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Rents – Filter by Price Range (Annual Amount)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rents?minPrice=50000&maxPrice=150000&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rents"],
+              "query": [
+                {"key": "minPrice", "value": "50000", "description": "Min annual_amount"},
+                {"key": "maxPrice", "value": "150000", "description": "Max annual_amount"},
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            },
+            "description": "Returns rent transactions where annual_amount is between 50,000 and 150,000."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Rents – Filter by Area (Text Search)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rents?areaSearch=marina&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rents"],
+              "query": [
+                {"key": "areaSearch", "value": "marina", "description": "Case-insensitive partial match on area_name"},
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            },
+            "description": "Returns rent transactions where area_name contains \"marina\" (case-insensitive)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Rents – Filter by Project (Text Search)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rents?projectSearch=emaar&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rents"],
+              "query": [
+                {"key": "projectSearch", "value": "emaar", "description": "Case-insensitive partial match on project_name"},
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            },
+            "description": "Returns rent transactions where project_name contains \"emaar\" (case-insensitive)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Rents – Combined Filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rents?usage=Residential&minPrice=40000&maxPrice=120000&areaSearch=marina&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rents"],
+              "query": [
+                {"key": "usage", "value": "Residential"},
+                {"key": "minPrice", "value": "40000"},
+                {"key": "maxPrice", "value": "120000"},
+                {"key": "areaSearch", "value": "marina"},
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "10"}
+              ]
+            },
+            "description": "All filters combined: Residential rents in areas matching \"marina\", annual amount between 40k and 120k."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Rents – Page 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rents?page=1&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rents"],
+              "query": [
+                {"key": "page", "value": "1", "description": "Second page (0-indexed)"},
+                {"key": "size", "value": "20"}
+              ]
+            },
+            "description": "Demonstrates pagination – retrieves the second page."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Rents Average Prices (All Areas)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rents/averages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rents", "averages"]
+            },
+            "description": "Returns average `annual_amount` grouped by area, across all rent transactions.\n\n**Response:**\n```json\n[\n  {\n    \"areaName\": \"DUBAI MARINA\",\n    \"averagePrice\": 92000.00,\n    \"transactionCount\": 3150\n  },\n  ...\n]\n```"
+          },
+          "response": [
+            {
+              "name": "200 OK – List of Area Averages",
+              "originalRequest": {
+                "method": "GET",
+                "url": {"raw": "{{baseUrl}}/api/rents/averages", "host": ["{{baseUrl}}"], "path": ["api", "rents", "averages"]}
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "[\n  {\n    \"areaName\": \"DUBAI MARINA\",\n    \"averagePrice\": 92000.00,\n    \"transactionCount\": 3150\n  },\n  {\n    \"areaName\": \"DOWNTOWN DUBAI\",\n    \"averagePrice\": 115000.00,\n    \"transactionCount\": 1820\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get Rents Average Price – Specific Area",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rents/averages/{{rentsArea}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rents", "averages", "{{rentsArea}}"]
+            },
+            "description": "Returns average `annual_amount` and transaction count for a single area.\n\nThe area name is taken from the `rentsArea` collection variable (default: `DUBAI MARINA`). Update the variable or type the area directly in the URL.\n\n**Response:**\n```json\n{\n  \"areaName\": \"DUBAI MARINA\",\n  \"averagePrice\": 92000.00,\n  \"transactionCount\": 3150\n}\n```\n\n**404** is returned if the area is not found."
+          },
+          "response": [
+            {
+              "name": "200 OK – Single Area Average",
+              "originalRequest": {
+                "method": "GET",
+                "url": {"raw": "{{baseUrl}}/api/rents/averages/DUBAI MARINA", "host": ["{{baseUrl}}"], "path": ["api", "rents", "averages", "DUBAI MARINA"]}
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"areaName\": \"DUBAI MARINA\",\n  \"averagePrice\": 92000.00,\n  \"transactionCount\": 3150\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Error Scenarios",
+      "description": "Requests that demonstrate expected error responses from the GlobalExceptionHandler.",
+      "item": [
+        {
+          "name": "Upload Sales – No File (400)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sales/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sales", "upload"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            },
+            "description": "Sending a multipart request with no `file` field attached. Expects a 400 Bad Request.\n\n**Response:**\n```json\n{\n  \"error\": \"Could not read uploaded file\",\n  \"detail\": \"...\"\n}\n```"
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Rents – No File (400)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rents/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rents", "upload"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            },
+            "description": "Sending a multipart request with no `file` field attached. Expects a 400 Bad Request."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Sales Average – Unknown Area (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sales/averages/UNKNOWN_AREA_XYZ",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sales", "averages", "UNKNOWN_AREA_XYZ"]
+            },
+            "description": "Requests average sales price for an area that does not exist in the DB. Expects 404."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Rents Average – Unknown Area (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rents/averages/UNKNOWN_AREA_XYZ",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rents", "averages", "UNKNOWN_AREA_XYZ"]
+            },
+            "description": "Requests average rent price for an area that does not exist in the DB. Expects 404."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
